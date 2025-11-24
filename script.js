@@ -3,225 +3,125 @@
 // via any medium, is strictly prohibited without the author’s permission.
 
 // ===== Elements =====
-const videoEl = document.getElementById('video');
-const overlay = document.getElementById('overlay');
-const ctx = overlay.getContext('2d');
-const scanner = document.getElementById('scanner');
-const holo = document.getElementById('holoSequence');
-const line1 = document.getElementById('line1');
-const line2 = document.getElementById('line2');
-const line3 = document.getElementById('line3');
-const finalVideo = document.getElementById('finalVideo');
-const reveal = document.getElementById('reveal');
-const playBtn = document.getElementById('playBtn');
+// Copyright 2024 
+// Created By: Ali Haider  
+// All Rights Reserved
 
-const galaxyCanvas = document.getElementById('galaxy');
-const gctx = galaxyCanvas.getContext('2d');
+const videoEl = document.getElementById("videoEl");
+const overlay = document.getElementById("overlay");
+const handOutline = document.getElementById("handOutline");
+const playBtn = document.getElementById("playBtn");
+const galaxyCanvas = document.getElementById("galaxyCanvas");
+const reveal = document.getElementById("reveal");
 
-// ===== Resize canvases =====
+const ctx = overlay.getContext("2d");
+const gctx = galaxyCanvas.getContext("2d");
+
+let handPresent = false;
+
+// Make canvas match video at all times
 function resizeCanvases() {
-  overlay.width = videoEl.clientWidth;
-  overlay.height = videoEl.clientHeight;
-  galaxyCanvas.width = window.innerWidth;
-  galaxyCanvas.height = window.innerHeight;
-}
-window.addEventListener('resize', resizeCanvases);
-
-// ===== Galaxy background animation =====
-function drawGalaxy() {
-  gctx.clearRect(0, 0, galaxyCanvas.width, galaxyCanvas.height);
-  const grd = gctx.createRadialGradient(
-    galaxyCanvas.width * 0.5, galaxyCanvas.height * 0.6, 80,
-    galaxyCanvas.width * 0.5, galaxyCanvas.height * 0.6, galaxyCanvas.width * 0.7
-  );
-  grd.addColorStop(0, 'rgba(20,30,70,0.3)');
-  grd.addColorStop(1, 'rgba(0,0,0,0.1)');
-  gctx.fillStyle = grd;
-  gctx.fillRect(0, 0, galaxyCanvas.width, galaxyCanvas.height);
-
-  for (let i = 0; i < 60; i++) {
-    const x = Math.random() * galaxyCanvas.width;
-    const y = Math.random() * galaxyCanvas.height;
-    const r = Math.random() * 1.2;
-    gctx.fillStyle = `rgba(120,180,255,${Math.random() * 0.6})`;
-    gctx.beginPath();
-    gctx.arc(x, y, r, 0, Math.PI * 2);
-    gctx.fill();
-  }
-  requestAnimationFrame(drawGalaxy);
+  const rect = videoEl.getBoundingClientRect();
+  overlay.width = rect.width;
+  overlay.height = rect.height;
+  galaxyCanvas.width = rect.width;
+  galaxyCanvas.height = rect.height;
 }
 
-// ===== MediaPipe Hands =====
-let hands;
-let cam;
-let stableStart = null;
-let lastLandmarks = null;
+window.addEventListener("resize", resizeCanvases);
 
-function setupHands() {
-  hands = new Hands({
-    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
-  });
-  hands.setOptions({
-    maxNumHands: 1,
-    modelComplexity: 1,
-    minDetectionConfidence: 0.6,
-    minTrackingConfidence: 0.6,
-  });
-  hands.onResults(onResults);
-}
-
+// Start camera with mobile-friendly high resolution
 async function startCamera() {
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: 'user' }, // front camera for mobile
-    audio: false
-  });
-  videoEl.srcObject = stream;
-  await videoEl.play();
-  resizeCanvases();
-  cam = new Camera(videoEl, {
-    onFrame: async () => {
-      await hands.send({ image: videoEl });
-    },
-    width: 1280,
-    height: 720,
-  });
-  cam.start();
-}
-
-// ===== Draw neon hand overlay =====
-function drawNeonHand(landmarks) {
-  ctx.clearRect(0, 0, overlay.width, overlay.height);
-  const W = overlay.width;
-  const H = overlay.height;
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = '#36d2ff';
-  ctx.shadowColor = '#36d2ff';
-  ctx.shadowBlur = 14;
-  const t = performance.now() / 500;
-  ctx.globalAlpha = 0.85 + Math.sin(t) * 0.1;
-
-  const connections = [
-    [0,1],[1,2],[2,3],[3,4],
-    [0,5],[5,9],[9,13],[13,17],[17,0],
-    [5,6],[6,7],[7,8],
-    [9,10],[10,11],[11,12],
-    [13,14],[14,15],[15,16],
-    [17,18],[18,19],[19,20],
-  ];
-
-  ctx.beginPath();
-  for (const [a, b] of connections) {
-    const ax = landmarks[a].x * W;
-    const ay = landmarks[a].y * H;
-    const bx = landmarks[b].x * W;
-    const by = landmarks[b].y * H;
-    ctx.moveTo(W - ax, ay);
-    ctx.lineTo(W - bx, by);
-  }
-  ctx.stroke();
-
-  ctx.fillStyle = 'rgba(54,210,255,0.85)';
-  for (const lm of landmarks) {
-    const x = W - lm.x * W;
-    const y = lm.y * H;
-    ctx.beginPath();
-    ctx.arc(x, y, 3.5, 0, Math.PI * 2);
-    ctx.fill();
-  }
-}
-
-// ===== Stability check =====
-function isStable(current, previous) {
-  if (!current || !previous) return false;
-  const idxs = [0, 5, 9, 13, 17];
-  let drift = 0;
-  for (const i of idxs) {
-    const dx = current[i].x - previous[i].x;
-    const dy = current[i].y - previous[i].y;
-    drift += Math.sqrt(dx*dx + dy*dy);
-  }
-  const avgDrift = drift / idxs.length;
-  return avgDrift < 0.01;
-}
-
-function onResults(results) {
-  const hasHand = results.multiHandLandmarks && results.multiHandLandmarks.length > 0;
-  if (hasHand) {
-    const lm = results.multiHandLandmarks[0];
-    drawNeonHand(lm);
-    if (lastLandmarks && isStable(lm, lastLandmarks)) {
-      if (!stableStart) stableStart = performance.now();
-      const elapsed = (performance.now() - stableStart) / 1000;
-      if (elapsed >= 5) completeScan(); // 5 seconds
-    } else {
-      stableStart = null;
-    }
-    lastLandmarks = lm;
-  } else {
-    stableStart = null;
-    lastLandmarks = null;
-    ctx.clearRect(0, 0, overlay.width, overlay.height);
-  }
-}
-
-// ===== Transition sequence =====
-function completeScan() {
-  hands.onResults(() => {}); // stop further detection
-  scanner.classList.add('hidden');
-  setTimeout(() => startHologram(), 600);
-}
-
-function startHologram() {
-  holo.classList.add('active');
-  playLine(line1, 0);
-  playLine(line2, 1200);
-  playLine(line3, 2400);
-  setTimeout(() => {
-    holo.classList.remove('active');
-    showFinalVideo();
-  }, 4200);
-}
-
-function playLine(el, delay) {
-  setTimeout(() => {
-    el.style.animation = 'neonIn 800ms ease';
-    el.style.opacity = '1';
-    el.style.transform = 'translateY(0)';
-  }, delay);
-}
-
-// ===== Final video =====
-async function showFinalVideo() {
-  finalVideo.classList.add('active');
-  reveal.muted = true;
-  reveal.preload = "none";
-  reveal.poster = "black.png";
   try {
-    await reveal.play();
-    reveal.pause();
-    reveal.muted = false;
-    playBtn.classList.remove('hidden');
-    playBtn.textContent = "▶ Tap to Reveal Future";
-  } catch {
-    playBtn.classList.remove('hidden');
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: "user",
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
+      }
+    });
+    videoEl.srcObject = stream;
+    videoEl.onloadedmetadata = () => resizeCanvases();
+  } catch (e) {
+    alert("Camera access failed: " + e);
   }
 }
 
-playBtn.addEventListener('click', async () => {
-  reveal.muted = false;
-  await reveal.play();
-  playBtn.classList.add('hidden');
+// Mediapipe hands
+const hands = new Hands({
+  locateFile: (file) =>
+    `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
 });
 
-// ===== Init =====
-(async function init() {
-  resizeCanvases();
-  drawGalaxy();
-  setupHands();
-  try {
-    await startCamera();
-  } catch (err) {
-    alert('Camera permission is required for the experience.');
-    console.error(err);
+hands.setOptions({
+  maxNumHands: 1,
+  minDetectionConfidence: 0.65,
+  minTrackingConfidence: 0.5,
+});
+
+hands.onResults((results) => {
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+  if (!results.multiHandLandmarks.length) {
+    handPresent = false;
+    return;
   }
-})();
+
+  handPresent = true;
+
+  for (let landmarks of results.multiHandLandmarks) {
+    drawingUtils.drawConnectors(ctx, landmarks, Hands.HAND_CONNECTIONS,
+      {color: "aqua", lineWidth: 4});
+    drawingUtils.drawLandmarks(ctx, landmarks, {color: "white", radius: 3});
+  }
+});
+
+// Animate galaxy canvas when hand detected
+function animateGalaxy(timestamp) {
+  gctx.clearRect(0,0,galaxyCanvas.width, galaxyCanvas.height);
+
+  if (handPresent) {
+    galaxyCanvas.style.opacity = 0.8;
+
+    let t = timestamp * 0.002;
+    let w = galaxyCanvas.width;
+    let h = galaxyCanvas.height;
+
+    for (let i = 0; i < 150; i++) {
+      let x = (Math.sin(i + t) * 0.5 + 0.5) * w;
+      let y = (Math.cos(i * 0.7 + t) * 0.5 + 0.5) * h;
+
+      gctx.beginPath();
+      gctx.arc(x, y, 2, 0, Math.PI * 2);
+      gctx.fillStyle = "rgba(0,180,255,0.8)";
+      gctx.fill();
+    }
+  } else {
+    galaxyCanvas.style.opacity = 0;
+  }
+
+  requestAnimationFrame(animateGalaxy);
+}
+
+// Reveal video after scan
+playBtn.addEventListener("click", () => {
+  playBtn.style.display = "none";
+
+  setTimeout(() => {
+    reveal.src = "final.mp4";
+    reveal.style.display = "block";
+    reveal.play();
+  }, 3000);
+});
+
+// Start camera + animations
+startCamera();
+requestAnimationFrame(animateGalaxy);
+
+// Feed frames to Mediapipe
+const camera = new Camera(videoEl, {
+  onFrame: async () => {
+    await hands.send({ image: videoEl });
+  },
+});
+camera.start();
