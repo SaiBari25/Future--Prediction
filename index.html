@@ -1,0 +1,49 @@
+<!--
+Copyright (c) 2025 Sai
+  All rights reserved. Unauthorized copying, modification, or distribution of this project,
+  via any medium, is strictly prohibited without the author’s permission.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SEE FUTURE WITH SAI</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+</head>
+<body>
+  <canvas id="galaxy"></canvas>
+
+  <header id="title">SEE FUTURE WITH SAI</header>
+
+  <!-- Scanner -->
+  <section id="scanner">
+    <div class="frame">
+      <video id="video" playsinline muted></video>
+      <img id="handOutline" src="Hand-outline.png" alt="Hand outline" />
+      <canvas id="overlay"></canvas>
+      <div id="instructions">Align your palm with the holographic outline</div>
+    </div>  
+      <div id="instructions"> Keep your hand steady for atleast 7 seconds </div>
+            </div>
+  </section>
+
+  <!-- Hologram text -->
+  <section id="holoSequence">
+    <div class="holoLine" id="line1">SCAN COMPLETE</div>
+    <div class="holoLine" id="line2">YOUR FUTURE RESULT IS FOUND</div>
+    <div class="holoLine" id="line3">PREPARE YOURSELF</div>
+  </section>
+
+  <!-- Final video -->
+  <section id="finalVideo">
+    <video id="reveal" src="future.mp4" playsinline preload="none" poster="black.png"></video>
+    <button id="playBtn" class="hidden">▶ Tap to Reveal Future</button>
+  </section>
+
+  <script src="script.js"></script>
+</body>
+</html>
