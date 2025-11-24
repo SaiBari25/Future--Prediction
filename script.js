@@ -2,8 +2,7 @@
 // All rights reserved. Unauthorized copying, modification, or distribution of this project,
 // via any medium, is strictly prohibited without the author’s permission.
 
-
-// Elements
+// ===== Elements =====
 const videoEl = document.getElementById('video');
 const overlay = document.getElementById('overlay');
 const ctx = overlay.getContext('2d');
@@ -19,7 +18,7 @@ const playBtn = document.getElementById('playBtn');
 const galaxyCanvas = document.getElementById('galaxy');
 const gctx = galaxyCanvas.getContext('2d');
 
-// Resize canvases
+// ===== Resize canvases =====
 function resizeCanvases() {
   overlay.width = videoEl.clientWidth;
   overlay.height = videoEl.clientHeight;
@@ -28,7 +27,7 @@ function resizeCanvases() {
 }
 window.addEventListener('resize', resizeCanvases);
 
-// Galaxy background animation
+// ===== Galaxy background animation =====
 function drawGalaxy() {
   gctx.clearRect(0, 0, galaxyCanvas.width, galaxyCanvas.height);
   const grd = gctx.createRadialGradient(
@@ -52,7 +51,7 @@ function drawGalaxy() {
   requestAnimationFrame(drawGalaxy);
 }
 
-// MediaPipe Hands
+// ===== MediaPipe Hands =====
 let hands;
 let cam;
 let stableStart = null;
@@ -72,7 +71,10 @@ function setupHands() {
 }
 
 async function startCamera() {
-  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+  const stream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: 'user' }, // front camera for mobile
+    audio: false
+  });
   videoEl.srcObject = stream;
   await videoEl.play();
   resizeCanvases();
@@ -86,7 +88,7 @@ async function startCamera() {
   cam.start();
 }
 
-// Draw neon hand overlay
+// ===== Draw neon hand overlay =====
 function drawNeonHand(landmarks) {
   ctx.clearRect(0, 0, overlay.width, overlay.height);
   const W = overlay.width;
@@ -128,7 +130,7 @@ function drawNeonHand(landmarks) {
   }
 }
 
-// Stability check
+// ===== Stability check =====
 function isStable(current, previous) {
   if (!current || !previous) return false;
   const idxs = [0, 5, 9, 13, 17];
@@ -162,9 +164,9 @@ function onResults(results) {
   }
 }
 
-// Transition
+// ===== Transition sequence =====
 function completeScan() {
-  hands.onResults(() => {});
+  hands.onResults(() => {}); // stop further detection
   scanner.classList.add('hidden');
   setTimeout(() => startHologram(), 600);
 }
@@ -177,7 +179,7 @@ function startHologram() {
   setTimeout(() => {
     holo.classList.remove('active');
     showFinalVideo();
-  }, 3600 + 600);
+  }, 4200);
 }
 
 function playLine(el, delay) {
@@ -188,12 +190,12 @@ function playLine(el, delay) {
   }, delay);
 }
 
-// Final video
+// ===== Final video =====
 async function showFinalVideo() {
   finalVideo.classList.add('active');
   reveal.muted = true;
   reveal.preload = "none";
-  reveal.poster = "assets/black.png";
+  reveal.poster = "black.png";
   try {
     await reveal.play();
     reveal.pause();
@@ -211,8 +213,9 @@ playBtn.addEventListener('click', async () => {
   playBtn.classList.add('hidden');
 });
 
-// Init
+// ===== Init =====
 (async function init() {
+  resizeCanvases();
   drawGalaxy();
   setupHands();
   try {
